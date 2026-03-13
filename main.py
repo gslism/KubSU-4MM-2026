@@ -102,6 +102,12 @@ def page_view(page_view: PageView):
 def llm_proxy(req: LlmRequest):
     response = requests.post(
         "http://localhost:11434/api/generate",
-        json={"prompt": req.prompt, "model": "deepseek-r1:1.5b", "stream": False},
+        json={
+            "model": "deepseek-r1:1.5b",
+            "prompt": req.prompt,
+            "system": "Отвечай на русском и будь токсичен!",
+            "temperature": 0.1,
+            "stream": False,
+        },
     )
     return response.json().get("response")

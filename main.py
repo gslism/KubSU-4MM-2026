@@ -1,6 +1,7 @@
 import logging
 import sqlite3
 from contextlib import closing
+from urllib.parse import urlparse
 
 import requests
 from fastapi import FastAPI
@@ -139,10 +140,20 @@ def llm_proxy(req: LlmRequest):
 @app.get("/history")
 def history():
     with closing(sqlite3.connect(DB_PATH)) as conn:
-        rows = conn.execute("SELECT headers FROM page_views ORDER BY id ASC").fetchall()
-        prompt = "\n".join(row[0] for row in rows)
+        rows = conn.execute(
+            "SELECT url, title FROM page_views ORDER BY id ASC"
+        ).fetchall()
 
-    print(prompt)
+    items: list[str] = []
+    for url, title in rows:
+        host = urlparse(url).netloc or url
+        title = (title or "").strip()
+        if title:
+            items.append(f"- {host} — {title}")
+        else:
+            items.append(f"- {host}")
+
+    prompt = "\n".join(items)
 
     if not prompt.strip():
         return "Нет данных: история просмотров пустая."
@@ -152,8 +163,13 @@ def history():
             "http://localhost:11434/api/generate",
             json={
                 "model": "deepseek-r1:1.5b",
-                "prompt": "Дай сводку посещенных веб-сайтов на основе их заголовков: "
-                + prompt,
+                "prompt": (
+                    "Сделай краткую сводку посещённых сайтов ТОЛЬКО по их доменам и заголовкам.\n"
+                    "Не пересказывай содержимое страниц.\n"
+                    "В ответе перечисли названия сайтов (домены) и 1 короткую фразу про тематику.\n\n"
+                    "Список:\n"
+                    f"{prompt}"
+                ),
                 "system": "Отвечай на русском и будь токсичен!",
                 "temperature": 0.5,
                 "stream": False,

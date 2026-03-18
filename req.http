@@ -24,9 +24,13 @@ Content-Type: application/json
 
 ###
 
-POST http://127.0.0.1:8000/my-chat-gpt
+POST http://127.0.0.1:8000/request
 Content-Type: application/json
 
 {
   "prompt": "Лучший ВУЗ в Краснодаре?"
 }
+
+###
+
+GET http://127.0.0.1:8000/history
